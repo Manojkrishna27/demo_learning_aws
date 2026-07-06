@@ -1,0 +1,47 @@
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# ── Environment / Secrets ────────────────────────────────────
+.env
+.env.*
+!.env.example           # keep the example template
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# ── Database files ───────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── AWS / EB ─────────────────────────────────────────────────
+.elasticbeanstalk/
+!.elasticbeanstalk/config.yml   # keep EB project config
+*.zip
+.aws-sam/
+
+# ── Flask migrations (optional – commit if you want history) ──
+# backend/migrations/
+
+# ── OS & Editor ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Logs ────────────────────────────────────────────────────
+*.log
+logs/
