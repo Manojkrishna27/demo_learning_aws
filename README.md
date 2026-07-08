@@ -1,201 +1,293 @@
-# CalcPro – AWS Deployment Guide
+# 🧮 CalcPro
 
-> **Full-stack calculator** — Static frontend on S3+CloudFront, Flask backend on Elastic Beanstalk, PostgreSQL on RDS.
+> **A modern full-stack calculator application built with Flask and deployed on AWS Cloud using S3, CloudFront, Elastic Beanstalk, and RDS PostgreSQL.**
 
----
+[![AWS](https://img.shields.io/badge/AWS-Cloud-orange?logo=amazonaws)](https://aws.amazon.com/)
+[![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-Backend-black?logo=flask)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## Architecture
+## 🌐 Live Demo
 
-```
-Browser → CloudFront (HTTPS CDN) → S3 (HTML / CSS / JS)
-                                 ↘
-                            Elastic Beanstalk (Flask + Gunicorn)
-                                 ↘
-                              RDS PostgreSQL
-```
+**Frontend:** https://d3677ds3xxb428.cloudfront.net/
 
 ---
 
-## Prerequisites
+# 📖 Overview
 
-Install these tools before starting:
+CalcPro is a cloud-native full-stack calculator application built using **Flask** and deployed entirely on **AWS Cloud**.
 
-```bash
-# 1. AWS CLI v2
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip && sudo ./aws/install
-aws --version   # should print aws-cli/2.x.x
+The frontend is hosted on **Amazon S3** and delivered globally using **Amazon CloudFront**, while the backend runs on **AWS Elastic Beanstalk** with **PostgreSQL** hosted on **Amazon RDS**.
 
-# 2. EB CLI
-pip install awsebcli
-eb --version
-
-# 3. Configure AWS credentials
-aws configure
-# Enter: Access Key ID, Secret Access Key, Region (e.g. us-east-1), Output format (json)
-```
+This project demonstrates a production-ready deployment architecture following cloud best practices.
 
 ---
 
-## Quick Start – Automated Setup
+# ✨ Features
 
-```bash
-# Clone / navigate to project
-cd mini_calcutor
-
-# Make scripts executable
-chmod +x aws-setup.sh deploy-frontend.sh
-
-# Edit aws-setup.sh — change DB_PASSWORD and AWS_REGION at the top, then:
-./aws-setup.sh
-```
-
-The script will output the exact commands to run for steps 2–5.
+- Responsive calculator interface
+- Fast arithmetic calculations
+- RESTful Flask API
+- PostgreSQL database integration
+- Global CDN using CloudFront
+- Secure HTTPS deployment
+- Production-ready AWS infrastructure
+- Scalable backend deployment
+- Environment variable configuration
+- Clean and maintainable project structure
 
 ---
 
-## Manual Step-by-Step Deployment
+# 🏗️ Architecture
 
-### Step 1 — Create S3 Bucket (Frontend)
-
-```bash
-BUCKET="calcpro-frontend-$(date +%s)"
-
-aws s3api create-bucket --bucket "$BUCKET" --region us-east-1
-
-# Public read policy
-aws s3api put-public-access-block --bucket "$BUCKET" \
-  --public-access-block-configuration \
-  "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
-
-aws s3api put-bucket-policy --bucket "$BUCKET" --policy '{
-  "Version":"2012-10-17",
-  "Statement":[{"Effect":"Allow","Principal":"*","Action":"s3:GetObject",
-                "Resource":"arn:aws:s3:::'"$BUCKET"'/*"}]}'
-
-aws s3 website s3://$BUCKET/ --index-document index.html --error-document index.html
-```
-
-### Step 2 — Upload Frontend Files
-
-```bash
-export S3_BUCKET="$BUCKET"
-./deploy-frontend.sh
-```
-
-### Step 3 — Create CloudFront Distribution
-
-Use the **AWS Console**: CloudFront → Create distribution → point to your S3 website endpoint.
-
-Or use `aws-setup.sh` (it does this automatically).
-
-### Step 4 — Create RDS PostgreSQL
-
-```bash
-aws rds create-db-instance \
-  --db-instance-identifier calcpro-db \
-  --db-instance-class db.t3.micro \
-  --engine postgres \
-  --master-username calcpro_user \
-  --master-user-password "YourStrongPassword!" \
-  --db-name calcpro_db \
-  --allocated-storage 20 \
-  --no-publicly-accessible \
-  --region us-east-1
-
-# Wait ~5 minutes, then get the endpoint:
-aws rds describe-db-instances \
-  --db-instance-identifier calcpro-db \
-  --query 'DBInstances[0].Endpoint.Address' \
-  --output text
-```
-
-### Step 5 — Deploy Backend to Elastic Beanstalk
-
-```bash
-# Initialise EB project (run once)
-eb init calcpro-backend --platform "Python 3.12" --region us-east-1
-
-# Create the environment
-eb create calcpro-prod --instance-type t3.micro
-
-# Set production environment variables
-eb setenv \
-  FLASK_ENV=production \
-  SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')" \
-  DATABASE_URL="postgresql://calcpro_user:YourStrongPassword!@<RDS_ENDPOINT>:5432/calcpro_db" \
-  CORS_ORIGINS="https://<YOUR_CLOUDFRONT_DOMAIN>.cloudfront.net"
-
-# Deploy!
-eb deploy
-```
-
-### Step 6 — Update CORS Origins
-
-After EB deploy, update the `CORS_ORIGINS` env var to include your CloudFront domain:
-
-```bash
-eb setenv CORS_ORIGINS="https://xxxx.cloudfront.net"
+```text
+                    +----------------------+
+                    |      Web Browser     |
+                    +----------+-----------+
+                               |
+                           HTTPS Request
+                               |
+                               ▼
+                    Amazon CloudFront CDN
+                               |
+                +--------------+--------------+
+                |                             |
+                ▼                             ▼
+         Amazon S3                     Elastic Beanstalk
+     (Frontend Hosting)                (Flask Backend)
+                                              |
+                                              ▼
+                                   Amazon RDS PostgreSQL
 ```
 
 ---
 
-## Verify Deployment
+# ☁️ AWS Services Used
 
-```bash
-# Check backend health
-curl https://your-eb-url.elasticbeanstalk.com/api/health
-# Expected: {"ok": true, "data": {"status": "healthy", ...}}
+| Service | Purpose |
+|----------|---------|
+| Amazon S3 | Frontend Hosting |
+| Amazon CloudFront | Global CDN & HTTPS |
+| AWS Elastic Beanstalk | Flask Backend Deployment |
+| Amazon RDS PostgreSQL | Database |
+| AWS IAM | Secure Access Management |
 
-# Check frontend
-curl -I https://xxxx.cloudfront.net/index.html
-# Expected: HTTP/2 200
+---
+
+# 🛠️ Tech Stack
+
+## Frontend
+
+- HTML5
+- CSS3
+- JavaScript
+
+## Backend
+
+- Python 3.12
+- Flask
+- Gunicorn
+
+## Database
+
+- PostgreSQL
+
+## Cloud
+
+- Amazon S3
+- Amazon CloudFront
+- AWS Elastic Beanstalk
+- Amazon RDS
+- AWS IAM
+
+---
+
+# 📂 Project Structure
+
+```text
+CalcPro/
+│
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── Procfile
+│   ├── routes/
+│   ├── models/
+│   └── utils/
+│
+├── frontend/
+│   ├── index.html
+│   ├── css/
+│   ├── js/
+│   └── assets/
+│
+├── docker-compose.yml
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-## Re-deploy (Day-to-Day)
+# 🚀 Getting Started
+
+## Clone Repository
 
 ```bash
-# Frontend change
-./deploy-frontend.sh
+git clone https://github.com/<your-github-username>/calcpro.git
 
-# Backend change
-eb deploy
+cd calcpro
 ```
 
 ---
 
-## Environment Variables Reference
+## Backend Setup
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `FLASK_ENV` | ✅ | Set to `production` |
-| `SECRET_KEY` | ✅ | Random 32-byte hex string |
-| `DATABASE_URL` | ✅ | `postgresql://user:pass@host:5432/db` |
-| `CORS_ORIGINS` | ✅ | Comma-separated list of allowed origins |
-| `HOST` | Optional | Default `0.0.0.0` |
-| `PORT` | Optional | Default `8000` |
-
----
-
-## Cost Estimate (Low Traffic)
-
-| Service | Free Tier | After 12 months |
-|---------|-----------|-----------------|
-| S3 + CloudFront | ~$0 | ~$1–2/mo |
-| Elastic Beanstalk (t3.micro) | Free 750hrs/mo | ~$8–12/mo |
-| RDS PostgreSQL (db.t3.micro) | Free 750hrs/mo | ~$15/mo |
-| **Total** | **~$0** | **~$25–30/mo** |
-
----
-
-## Local Development
+Create a virtual environment.
 
 ```bash
-# With Docker Compose (PostgreSQL + Flask + Nginx)
+python -m venv venv
+```
+
+Activate it.
+
+### Linux / macOS
+
+```bash
+source venv/bin/activate
+```
+
+### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+Install dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the Flask application.
+
+```bash
+python app.py
+```
+
+---
+
+# 🐳 Docker
+
+Run the application using Docker Compose.
+
+```bash
 docker compose up --build
-
-# Open: http://localhost  (Nginx serves frontend + proxies API)
-# API:  http://localhost/api/health
 ```
+
+---
+
+# 🔐 Environment Variables
+
+Create a `.env` file.
+
+```env
+FLASK_ENV=production
+
+SECRET_KEY=your_secret_key
+
+DATABASE_URL=postgresql://username:password@hostname:5432/database
+
+CORS_ORIGINS=https://d3677ds3xxb428.cloudfront.net
+```
+
+---
+
+# 📈 Deployment
+
+The application is deployed using AWS services.
+
+| Component | Service |
+|-----------|----------|
+| Frontend | Amazon S3 |
+| CDN | Amazon CloudFront |
+| Backend | AWS Elastic Beanstalk |
+| Database | Amazon RDS PostgreSQL |
+
+Deployment flow:
+
+```text
+Developer
+      │
+      ▼
+ GitHub Repository
+      │
+      ▼
+Elastic Beanstalk
+      │
+      ▼
+ Flask Backend
+      │
+      ▼
+Amazon RDS PostgreSQL
+
+Frontend
+      │
+      ▼
+ Amazon S3
+      │
+      ▼
+CloudFront CDN
+      │
+      ▼
+ Users
+```
+
+---
+
+# 🔒 Security
+
+- HTTPS enabled through CloudFront
+- Environment variables for secrets
+- Secure PostgreSQL connection
+- IAM-based AWS permissions
+- Production Flask configuration
+- CORS protection
+
+---
+
+# 📸 Live Application
+
+🌐 **https://d3677ds3xxb428.cloudfront.net/**
+
+---
+
+# 📚 Future Improvements
+
+- Calculator history
+- Authentication
+- User profiles
+- Dark mode
+- Calculation analytics
+- Export history
+- Progressive Web App (PWA)
+- Unit converter
+- Scientific calculator mode
+
+---
+
+# 👨‍💻 Author
+
+**Manoj Krishna M**
+
+B.Tech Artificial Intelligence & Data Science
+
+Cloud Computing • Python • Flask • AWS • PostgreSQL
+
+---
+
+## ⭐ If you like this project
+
+Give this repository a ⭐ on GitHub if you found it useful!
+
+---
